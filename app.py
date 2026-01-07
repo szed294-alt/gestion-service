@@ -6,6 +6,7 @@ import os
 app = Flask(__name__)
 DB_NAME = "orders.db"
 app.secret_key = os.environ.get("APP_SECRET_KEY", "dev-key")
+OWNER_PHONE = os.environ.get("OWNER_PHONE", "0689543603")
 
 # تهيئة قاعدة البيانات
 def init_db():
@@ -23,11 +24,22 @@ def init_db():
     conn.commit()
     conn.close()
 
-# محاكاة إرسال رسالة نصية
 def send_sms_notification(name, phone):
-    # في الواقع، هنا نستخدم API مثل Twilio
-    # مثال: client.messages.create(to=owner_phone, from_=twilio_number, body=...)
-    print(f"\n[SMS SENT] تنبيه لمدير المحل: طلبية جديدة من {name} (هاتف: {phone})")
+    msg = f"طلبية جديدة من {name} هاتف: {phone}"
+    account_sid = os.environ.get("TWILIO_ACCOUNT_SID")
+    auth_token = os.environ.get("TWILIO_AUTH_TOKEN")
+    from_number = os.environ.get("TWILIO_FROM")
+    to_number = OWNER_PHONE
+    if account_sid and auth_token and from_number:
+        try:
+            from twilio.rest import Client
+            client = Client(account_sid, auth_token)
+            client.messages.create(to=to_number, from_=from_number, body=msg)
+        except Exception as e:
+            print(f"[SMS ERROR] {e}")
+            print(f"[SMS LOG] {msg}")
+    else:
+        print(f"[SMS LOG] {msg}")
 
 @app.route('/')
 def index():
